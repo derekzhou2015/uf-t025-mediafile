@@ -1,0 +1,170 @@
+Changelog
+=========
+
+Upcoming
+--------
+
+- Fixed parsing of compact ``YYYYMMDD`` date strings (no separators) being
+  misread as a year value.
+
+v0.17.0
+-------
+
+- Added ``synced_lyrics`` field backed by the ID3v2 ``SYLT`` (synchronized
+  lyrics) frame. Reads and writes a list of ``(text, milliseconds)`` tuples for
+  MP3, AIFF, DSF, and WAVE files. Non-ID3 formats return ``None``.
+
+v0.16.2
+-------
+
+- Add ``raise_on_unsupported_wav`` parameter to ``MediaFile.__init__`` to
+  optionally raise ``FileTypeError`` for WAV files containing non-PCM audio
+  streams (``WAVE_FORMAT_MPEGLAYER3``, ``WAVE_FORMAT_ADPCM``,
+  ``WAVE_FORMAT_ALAW``, ``WAVE_FORMAT_MULAW``).
+
+v0.16.1
+-------
+
+- Raise ``FileTypeError`` for WAV files containing non-PCM audio streams that
+  mutagen cannot tag correctly, including ``WAVE_FORMAT_MPEGLAYER3`` (0x0055),
+  ``WAVE_FORMAT_ADPCM`` (0x0002), ``WAVE_FORMAT_ALAW`` (0x0006), and
+  ``WAVE_FORMAT_MULAW`` (0x0007).
+
+v0.16.0
+-------
+
+- Added a multiple-valued ``lyricists``, ``composers`` and ``arrangers`` fields
+  while preserving ``lyricist``, ``composer`` and ``arranger`` as first-value
+  convenience aliases.
+
+v0.15.0
+-------
+
+- Added a multiple-valued ``remixers`` field.
+
+v0.14.0
+-------
+
+- Refactored the monolith ``mediafile.py`` (2400 lines) into a modular structure
+  with multiple files under the ``mediafile/`` directory. This should make it
+  easier to maintain and extend the codebase.
+- Dropped support for Python 3.7, 3.8 and 3.9. MediaFile now requires Python
+  3.10 or later. This aligns with the current long-term support (LTS) versions
+  of Python.
+- Added minimal contribution guidelines to CONTRIBUTING.md
+- Changed project linter and formatter from ``flake8`` to ``ruff``. Reformatted
+  the codebase with ``ruff``.
+- Moved changelog into its own file, ``changelog.rst``. Also added github
+  workflow for automatic changelog reminders.
+- Modernized package and tests setup to use ``poetry``.
+- Run pyupgrade to align code with Python 3.10+ syntax.
+- Added TSO2 tag to ``albumartist_sort``, matching how Picard >= 1.2, iTunes and
+      Swinsian interpret tags.
+- Added ``TXXX:LABEL`` and ``TXXX:MEDIA`` tags to ``label`` and ``media``
+  fields, respectively, for MP3 files.
+
+v0.13.0
+-------
+
+- Add a mapping compatible with Plex and ffmpeg for the "original date" fields.
+- Remove an unnecessary dependency on `six`.
+- Replace `imghdr` with `filetype` to support Python 3.13.
+
+v0.12.0
+-------
+
+- Add the multiple-valued properties ``artists_credit``, ``artists_sort``,
+  ``albumartists_credit``, and ``albumartists_sort``.
+
+v0.11.0
+-------
+
+- List-valued properties now return ``None`` instead of an empty list when the
+  underlying tags are missing altogether.
+
+v0.10.1
+-------
+
+- Fix a test failure that arose with Mutagen 1.46.
+- Require Python 3.7 or later.
+
+v0.10.0
+-------
+
+- Add the multiple-valued properties ``albumtypes``, ``catalognums`` and
+  ``languages``.
+- The ``catalognum`` property now refers to additional file tags named
+  ``CATALOGID`` and ``DISCOGS_CATALOG`` (but only for reading, not writing).
+- The multi-valued ``albumartists`` property now refers to additional file tags
+  named ``ALBUM_ARTIST`` and ``ALBUM ARTISTS``. (The latter is used only for
+  reading.)
+- The ``ListMediaField`` class now doesn't concatenate multiple lists if found.
+  The first available tag is used instead, like with other kinds of fields.
+
+v0.9.0
+------
+
+- Add the properties ``bitrate_mode``, ``encoder_info`` and
+  ``encoder_settings``.
+
+v0.8.1
+------
+
+- Fix a regression in v0.8.0 that caused a crash on Python versions below 3.8.
+
+v0.8.0
+------
+
+- MediaFile now requires Python 3.6 or later.
+- Added support for Wave (`.wav`) files.
+
+v0.7.0
+------
+
+- Mutagen 1.45.0 or later is now required.
+- MediaFile can now use file-like objects (instead of just the filesystem, via
+  filenames).
+
+v0.6.0
+------
+
+- Enforce a minimum value for SoundCheck gain values.
+
+v0.5.0
+------
+
+- Refactored the distribution to use Flit_.
+
+.. _flit: https://flit.pypa.io/en/stable
+
+v0.4.0
+------
+
+- Added a ``barcode`` field.
+- Added new tag mappings for ``albumtype`` and ``albumstatus``.
+
+v0.3.0
+------
+
+- Fixed tests for compatibility with Mutagen 1.43.
+- Fix the MPEG-4 tag mapping for the ``label`` field to use the right
+  capitalization.
+
+v0.2.0
+------
+
+- R128 gain tags are now stored in Q7.8 integer format, as per `the relevant
+  standard`_.
+- Added an ``mb_workid`` field.
+- The Python source distribution now includes an ``__init__.py`` file that makes
+  it easier to run the tests.
+
+.. _the relevant standard: https://datatracker.ietf.org/doc/html/rfc7845.html
+
+v0.1.0
+------
+
+This is the first independent release of MediaFile. It is now synchronised with
+the embedded version released with beets_ v1.4.8.
+
+.. _beets: https://beets.io
