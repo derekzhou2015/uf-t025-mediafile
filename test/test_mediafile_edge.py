@@ -19,7 +19,9 @@ import os
 import shutil
 import unittest
 
+import mutagen
 import mutagen.id3
+import mutagen.mp4
 import pytest
 
 import mediafile
@@ -496,6 +498,27 @@ class TestSyncedLyrics:
         mf3 = mediafile.MediaFile(path)
         assert not mf3.synced_lyrics
 
+    @pytest.mark.parametrize("ext", ["mp3", "aiff", "dsf", "wav"])
+    def test_delete_removes_sylt_frame(self, tmp_path, ext):
+        path = _copy_fixture(tmp_path, f"empty.{ext}")
+        mf = mediafile.MediaFile(path)
+        mf.synced_lyrics = SYNCED_LYRICS
+        mf.save()
+
+        mf2 = mediafile.MediaFile(path)
+        delattr(mf2, "synced_lyrics")
+        mf2.save()
+
+        # No SYLT frame survives at either the tag or the byte level,
+        # and the library view agrees with the file contents.
+        raw = mutagen.File(path)
+        assert raw.tags.getall("SYLT") == []
+        with open(path, "rb") as fh:
+            assert b"SYLT" not in fh.read()
+
+        mf3 = mediafile.MediaFile(path)
+        assert not mf3.synced_lyrics
+
     def test_no_sylt_returns_falsy(self, tmp_path):
         path = _copy_fixture(tmp_path, "empty.mp3")
         mf = mediafile.MediaFile(path)
@@ -529,6 +552,113 @@ class TestSyncedLyrics:
         frames = tags.getall("SYLT")
         assert len(frames) == 1
         assert frames[0].lang == "XXX"
+
+
+class TestMP4TupleAtoms:
+    """Tests for the paired-number ``trkn`` and ``disk`` MP4 atoms.
+
+    Clearing either side must never leave a residual ``(0, 0)`` pair, and
+    when both sides are empty the whole atom has to be removed so the
+    library view matches the actual file contents.
+    """
+
+    @staticmethod
+    def _raw_tags(path):
+        return mutagen.mp4.MP4(path).tags
+
+    @pytest.mark.parametrize("fixture", ["empty.m4a", "empty.alac.m4a"])
+    def test_delete_both_sides_removes_trkn_atom(self, tmp_path, fixture):
+        path = _copy_fixture(tmp_path, fixture)
+        mf = mediafile.MediaFile(path)
+        mf.track = 2
+        mf.tracktotal = 3
+        mf.save()
+
+        mf2 = mediafile.MediaFile(path)
+        delattr(mf2, "track")
+        delattr(mf2, "tracktotal")
+        mf2.save()
+
+        tags = self._raw_tags(path)
+        assert "trkn" not in tags
+        with open(path, "rb") as fh:
+            assert b"trkn" not in fh.read()
+
+        mf3 = mediafile.MediaFile(path)
+        assert mf3.track is None
+        assert mf3.tracktotal is None
+
+    def test_delete_total_keeps_nonzero_pair(self, tmp_path):
+        path = _copy_fixture(tmp_path, "empty.m4a")
+        mf = mediafile.MediaFile(path)
+        mf.track = 2
+        mf.tracktotal = 3
+        mf.save()
+
+        mf2 = mediafile.MediaFile(path)
+        delattr(mf2, "tracktotal")
+        mf2.save()
+
+        tags = self._raw_tags(path)
+        assert tags.get("trkn") == [(2, 0)]
+        assert tags.get("trkn") != [(0, 0)]
+
+        mf3 = mediafile.MediaFile(path)
+        assert mf3.track == 2
+        assert mf3.tracktotal is None
+
+    def test_set_empty_values_removes_trkn_atom(self, tmp_path):
+        path = _copy_fixture(tmp_path, "empty.m4a")
+        mf = mediafile.MediaFile(path)
+        mf.track = 2
+        mf.tracktotal = 3
+        mf.save()
+
+        mf2 = mediafile.MediaFile(path)
+        mf2.track = None
+        mf2.tracktotal = None
+        mf2.save()
+
+        tags = self._raw_tags(path)
+        assert "trkn" not in tags
+        with open(path, "rb") as fh:
+            assert b"trkn" not in fh.read()
+
+    @pytest.mark.parametrize("field", ["track", "tracktotal"])
+    def test_cleanup_removes_preexisting_zero_pair(self, tmp_path, field):
+        # Files produced by the old behavior may carry a residual (0, 0)
+        # atom that reads back as empty. Clearing either side must remove it.
+        path = _copy_fixture(tmp_path, "empty.m4a")
+        raw = mutagen.mp4.MP4(path)
+        raw.tags["trkn"] = [(0, 0)]
+        raw.save()
+
+        mf = mediafile.MediaFile(path)
+        delattr(mf, field)
+        mf.save()
+
+        assert "trkn" not in self._raw_tags(path)
+
+    def test_delete_both_sides_removes_disk_atom(self, tmp_path):
+        path = _copy_fixture(tmp_path, "empty.m4a")
+        mf = mediafile.MediaFile(path)
+        mf.disc = 4
+        mf.disctotal = 5
+        mf.save()
+
+        mf2 = mediafile.MediaFile(path)
+        delattr(mf2, "disc")
+        delattr(mf2, "disctotal")
+        mf2.save()
+
+        tags = self._raw_tags(path)
+        assert "disk" not in tags
+        with open(path, "rb") as fh:
+            assert b"disk" not in fh.read()
+
+        mf3 = mediafile.MediaFile(path)
+        assert mf3.disc is None
+        assert mf3.disctotal is None
 
 
 def suite():

@@ -339,6 +339,13 @@ class MP3SYLTStorageStyle(MP3StorageStyle):
         )
         mutagen_file.tags.setall("SYLT", [frame])
 
+    def delete(self, mutagen_file):
+        # SYLT frames are keyed with a language suffix (e.g. ``SYLT::XXX``),
+        # so the base implementation's plain ``in``/``del`` lookup misses
+        # them. Use ``delall`` to remove the frame regardless of its
+        # language, matching the empty-value handling in ``store``.
+        mutagen_file.tags.delall("SYLT")
+
     def serialize(self, value):
         return value
 
